@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 המשחקים של רום ויהונתן 🎮</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-1: #0f0c29;
+            --bg-2: #302b63;
+            --bg-3: #24243e;
+            --text: #ffffff;
+            --neon-pink:   #ff5cb8;
+            --neon-yellow: #ffdd57;
+            --neon-green:  #5dffb8;
+            --neon-blue:   #5cc8ff;
+            --neon-purple: #b85cff;
+        }
+
+        html, body { overflow-x: hidden; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+            color: var(--text);
+            background: linear-gradient(135deg, var(--bg-1), var(--bg-2), var(--bg-3));
+            background-size: 200% 200%;
+            animation: bgMove 18s ease-in-out infinite;
+            padding: 20px;
+            position: relative;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { background-position: 0% 0%; }
+            50%      { background-position: 100% 100%; }
+        }
+
+        /* ---- Floating background emojis ---- */
+        .bubble {
+            position: fixed;
+            font-size: 2.4em;
+            pointer-events: none;
+            opacity: 0.15;
+            animation: float 14s linear infinite;
+            z-index: 0;
+        }
+        @keyframes float {
+            0%   { transform: translateY(110vh) rotate(0deg); }
+            100% { transform: translateY(-20vh)  rotate(360deg); }
+        }
+
+        /* ---- Header ---- */
+        header {
+            text-align: center;
+            padding: 20px 10px 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: clamp(2em, 7vw, 4em);
+            font-weight: 900;
+            background: linear-gradient(90deg, #ff5cb8, #ffdd57, #5dffb8, #5cc8ff, #b85cff, #ff5cb8);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+                    background-clip: text;
+            color: transparent;
+            animation: rainbow 4s linear infinite, bounce 2s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 92, 184, 0.3);
+            margin-bottom: 8px;
+        }
+        @keyframes rainbow {
+            0%, 100% { background-position: 0% center; }
+            50%      { background-position: 200% center; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50%      { transform: translateY(-6px) scale(1.02); }
+        }
+
+        .subtitle {
+            font-size: clamp(1em, 2.6vw, 1.4em);
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 10px;
+        }
+
+        .count-pill {
+            display: inline-block;
+            padding: 6px 18px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid var(--neon-yellow);
+            border-radius: 25px;
+            font-size: clamp(0.85em, 2vw, 1.05em);
+            color: var(--neon-yellow);
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(255,221,87,0.3);
+        }
+
+        /* ---- Games grid ---- */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 10px 0 30px;
+        }
+
+        /* ---- Game card ---- */
+        .game-card {
+            position: relative;
+            background: rgba(255,255,255,0.06);
+            border: 3px solid var(--card-color, var(--neon-blue));
+            border-radius: 24px;
+            padding: 22px 18px 18px;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
+            box-shadow: 0 0 25px rgba(0,0,0,0.4);
+            overflow: hidden;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .game-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, var(--card-color, white) 0%, transparent 60%);
+            opacity: 0.10;
+            pointer-events: none;
+        }
+        .game-card:hover, .game-card:active {
+            transform: translateY(-8px) scale(1.03);
+            box-shadow:
+                0 15px 40px rgba(0,0,0,0.5),
+                0 0 40px var(--card-color, white);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .game-icon {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: var(--card-bg, linear-gradient(135deg, #ff5cb8, #ffdd57));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            margin-bottom: 12px;
+            box-shadow:
+                0 8px 24px rgba(0,0,0,0.4),
+                inset 0 -8px 18px rgba(0,0,0,0.2),
+                inset 0  8px 18px rgba(255,255,255,0.3);
+            animation: wiggle 4s ease-in-out infinite;
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-4deg); }
+            50%      { transform: rotate(4deg); }
+        }
+
+        .game-card h2 {
+            font-size: 1.5em;
+            margin-bottom: 6px;
+            color: var(--card-color, white);
+            text-shadow: 0 0 12px var(--card-color, white);
+        }
+
+        .game-desc {
+            font-size: 0.95em;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.4;
+            margin-bottom: 12px;
+            min-height: 2.6em;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .tags span {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .top-score {
+            background: rgba(255,221,87,0.15);
+            border: 1px dashed rgba(255,221,87,0.5);
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 0.85em;
+            margin-bottom: 12px;
+            color: var(--neon-yellow);
+            display: inline-block;
+        }
+        .no-score {
+            font-size: 0.8em;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 12px;
+        }
+
+        .play-btn {
+            margin-top: auto;
+            background: linear-gradient(135deg, var(--card-color, var(--neon-yellow)), rgba(255,255,255,0.4));
+            color: #1a1a2e;
+            font-weight: 900;
+            padding: 12px 26px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .game-card:hover .play-btn, .game-card:active .play-btn {
+            transform: scale(1.08);
+        }
+
+        /* ---- "Coming soon" placeholder card ---- */
+        .soon-card {
+            background: rgba(255,255,255,0.03);
+            border: 3px dashed rgba(255,255,255,0.25);
+            border-radius: 24px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+            min-height: 360px;
+            color: rgba(255,255,255,0.55);
+        }
+        .soon-card .big { font-size: 3.6em; margin-bottom: 8px; opacity: 0.7; }
+        .soon-card h3 { font-size: 1.3em; margin-bottom: 6px; color: rgba(255,255,255,0.7); }
+        .soon-card p { font-size: 0.9em; }
+
+        /* ---- Footer ---- */
+        footer {
+            text-align: center;
+            padding: 30px 10px 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.95em;
+            position: relative;
+            z-index: 1;
+        }
+        footer strong { color: var(--neon-yellow); }
+        .rocket {
+            display: inline-block;
+            animation: launch 2s ease-in-out infinite;
+        }
+        @keyframes launch {
+            0%, 100% { transform: translateY(0) rotate(-10deg); }
+            50%      { transform: translateY(-8px) rotate(10deg); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Floating background emoji bubbles -->
+<div id="bubbles"></div>
+
+<header>
+    <h1>🎮 המשחקים של רום ויהונתן 🎮</h1>
+    <p class="subtitle">בחר משחק ותתחיל לשחק! 🚀</p>
+    <span class="count-pill" id="count-pill">טוען...</span>
+</header>
+
+<main>
+    <div class="games-grid" id="games-grid"></div>
+</main>
+
+<footer>
+    <p>נבנה ע"י <strong>רום</strong> ו<strong>יהונתן</strong> <span class="rocket">🚀</span></p>
+    <p style="margin-top:6px;font-size:0.85em">משחקים חדשים נוספים כל הזמן 🎮✨</p>
+</footer>
+
+<script>
+    // ===== Game catalog =====
+    // הוסיפו כאן כל משחק חדש שאתם בונים! פשוט תעתיקו בלוק כזה:
+    // {
+    //     title: 'שם המשחק',
+    //     desc:  'תיאור קצר של המשחק',
+    //     emoji: '🎮',
+    //     color: '#5dffb8',
+    //     bg:    'linear-gradient(135deg, #00ff88, #00aaff)',
+    //     file:  'שם-הקובץ.html',
+    //     tags:  ['תגית', 'תגית'],
+    //     storageKey: 'romyon_שם_scores_v1',
+    // },
+    const games = [
+        {
+            title: 'המרוץ לעשירות',
+            desc:  'תהיה הכי עשיר בעולם! אסוף מטבעות, קנה עסקים שמרוויחים כסף כל שנייה, ועקוף את כל המיליונרים ברשימה 👑💰',
+            emoji: '🤑',
+            color: '#ffd54a',     // gold
+            bg:    'linear-gradient(135deg, #1a2a6c, #ffd54a)',
+            file:  'rich.html',
+            tags:  ['כסף', 'אסטרטגיה', 'מקורי'],
+            storageKey: 'romyon_rich_scores_v1',
+        },
+    ];
+
+    // ===== Look up high score for a game from its localStorage key =====
+    function getTopScore(key) {
+        if (!key) return null;
+        try {
+            const scores = JSON.parse(localStorage.getItem(key)) || {};
+            let best = 0, who = '';
+            for (const [name, v] of Object.entries(scores)) {
+                if ((v.best || 0) > best) { best = v.best; who = name; }
+            }
+            return best > 0 ? { score: best, player: who } : null;
+        } catch { return null; }
+    }
+
+    // ===== Render the grid =====
+    function renderGames() {
+        const grid = document.getElementById('games-grid');
+        const cards = games.map(g => {
+            const top = getTopScore(g.storageKey);
+            const topHtml = top
+                ? `<div class="top-score">🏆 שיא: <strong>${top.player}</strong> · ${top.score}</div>`
+                : `<div class="no-score">עדיין אין שיא — שבור אותו! 💪</div>`;
+            return `
+                <a class="game-card" href="${g.file}"
+                   style="--card-color:${g.color}; --card-bg:${g.bg};">
+                    <div class="game-icon">${g.emoji}</div>
+                    <h2>${g.title}</h2>
+                    <p class="game-desc">${g.desc}</p>
+                    <div class="tags">${g.tags.map(t => `<span>${t}</span>`).join('')}</div>
+                    ${topHtml}
+                    <div class="play-btn">▶ שחק עכשיו</div>
+                </a>
+            `;
+        }).join('');
+
+        // "Coming soon" placeholder
+        const placeholder = `
+            <div class="soon-card">
+                <div class="big">🚧</div>
+                <h3>בקרוב — משחקים חדשים!</h3>
+                <p>רום ויהונתן בונים עכשיו את המשחק הבא...</p>
+            </div>
+        `;
+
+        grid.innerHTML = cards + placeholder;
+        document.getElementById('count-pill').textContent =
+            games.length > 0
+                ? `${games.length} משחקים זמינים 🎉`
+                : `מתחילים לבנות... 🛠️`;
+    }
+
+    // ===== Floating emoji background =====
+    function spawnBubbles() {
+        const container = document.getElementById('bubbles');
+        const emojis = ['🎮', '🕹️', '🎯', '💥', '🚀', '⭐', '🔥', '💎', '🏆', '👾'];
+        const N = 14;
+        for (let i = 0; i < N; i++) {
+            const span = document.createElement('span');
+            span.className = 'bubble';
+            span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            span.style.left = Math.random() * 100 + 'vw';
+            span.style.animationDuration = (10 + Math.random() * 14) + 's';
+            span.style.animationDelay    = (-Math.random() * 18) + 's';
+            span.style.fontSize = (1.6 + Math.random() * 2.5) + 'em';
+            container.appendChild(span);
+        }
+    }
+
+    renderGames();
+    spawnBubbles();
+</script>
+</body>
+</html>

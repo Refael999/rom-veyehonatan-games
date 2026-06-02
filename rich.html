@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>👑 המרוץ לעשירות 💰</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { overflow:hidden; height:100%; }
+body {
+    font-family:'Comic Sans MS','Trebuchet MS',sans-serif;
+    background:linear-gradient(135deg,#1a2a6c,#2a5298,#1a2a6c);
+    background-size:200% 200%;
+    animation:bg 16s ease-in-out infinite;
+    color:#fff; height:100%; display:flex; align-items:center; justify-content:center;
+    user-select:none;
+}
+@keyframes bg { 0%,100%{background-position:0 0;} 50%{background-position:100% 100%;} }
+
+#game-wrap {
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+}
+canvas { display:block; width:100%; height:100%; background:#87cefa; }
+
+/* ===== Top HUD ===== */
+#hud {
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:8px 10px; gap:8px; pointer-events:none; z-index:5;
+}
+.money-box {
+    background:rgba(0,0,0,0.55); border:2px solid #ffd54a; border-radius:12px;
+    padding:6px 12px; box-shadow:0 0 14px rgba(255,213,74,0.4);
+}
+.money-box .big { font-size:clamp(1em,4.5vw,1.6em); font-weight:900; color:#ffd54a; }
+.money-box .small { font-size:clamp(0.6em,2.6vw,0.85em); color:#9effa0; }
+
+/* ===== Rich list (bottom-right) ===== */
+#richlist {
+    position:absolute; bottom:12px; right:12px; z-index:7;
+    background:rgba(0,0,0,0.6); border:2px solid #ff7bd5; border-radius:12px;
+    padding:6px 8px; font-size:clamp(0.55em,2.4vw,0.8em); min-width:130px;
+    box-shadow:0 0 14px rgba(255,123,213,0.35);
+}
+#richlist h4 { color:#ff7bd5; font-size:1em; margin-bottom:3px; text-align:center; }
+.rl-row { display:flex; justify-content:space-between; gap:6px; padding:1px 2px; border-radius:5px; }
+.rl-row.me { background:rgba(255,213,74,0.25); font-weight:900; color:#ffd54a; }
+.rl-rank { opacity:0.7; }
+
+/* ===== Buy prompt ===== */
+#buyprompt {
+    position:absolute; bottom:96px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,0.78); border:3px solid #5dffb8; border-radius:16px;
+    padding:8px 14px; text-align:center; z-index:6; display:none; min-width:200px;
+    box-shadow:0 0 20px rgba(93,255,184,0.5);
+}
+#buyprompt .name { font-size:1.05em; font-weight:900; color:#5dffb8; }
+#buyprompt .info { font-size:0.8em; color:#fff; margin:2px 0; }
+#buyprompt .cost { font-size:0.9em; color:#ffd54a; font-weight:bold; }
+#buyBtn {
+    margin-top:5px; background:linear-gradient(135deg,#5dffb8,#1aa86b); color:#06321f;
+    border:none; border-radius:20px; padding:6px 20px; font-weight:900; font-size:1em;
+    cursor:pointer; font-family:inherit;
+}
+#buyBtn:disabled { background:#555; color:#999; cursor:default; }
+
+/* ===== Joystick / dpad ===== */
+#pad {
+    position:absolute; bottom:12px; left:12px; width:130px; height:130px; z-index:7;
+    display:none; touch-action:none;
+}
+#padbase { position:absolute; inset:0; background:rgba(255,255,255,0.13); border:2px solid rgba(255,255,255,0.3); border-radius:50%; }
+#padstick { position:absolute; width:54px; height:54px; left:38px; top:38px; background:rgba(255,213,74,0.85); border-radius:50%; box-shadow:0 0 14px rgba(255,213,74,0.6); }
+
+#muteBtn {
+    position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    z-index:8; background:rgba(0,0,0,0.5); border:2px solid #fff; color:#fff;
+    border-radius:50%; width:38px; height:38px; font-size:1.1em; cursor:pointer;
+}
+
+/* ===== Overlays ===== */
+.overlay {
+    position:absolute; inset:0; background:rgba(10,15,40,0.94); z-index:20;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:18px; overflow-y:auto;
+}
+.overlay h1 {
+    font-size:clamp(1.6em,7vw,3em); font-weight:900; margin-bottom:8px;
+    background:linear-gradient(90deg,#ffd54a,#ff7bd5,#5dffb8,#ffd54a);
+    background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:rainbow 4s linear infinite;
+}
+@keyframes rainbow { 0%,100%{background-position:0 center;} 50%{background-position:200% center;} }
+.overlay p { font-size:clamp(0.85em,3vw,1.1em); margin-bottom:10px; color:#dfe6ff; max-width:440px; line-height:1.45; }
+.btn {
+    background:linear-gradient(135deg,#ffd54a,#ff8a00); color:#1a1a2e; border:none;
+    border-radius:30px; padding:12px 30px; font-size:1.15em; font-weight:900;
+    cursor:pointer; font-family:inherit; margin:6px; box-shadow:0 5px 18px rgba(255,213,74,0.4);
+}
+.btn.alt { background:linear-gradient(135deg,#5dffb8,#1aa86b); color:#06321f; }
+#nameInput {
+    padding:10px 16px; border-radius:14px; border:3px solid #ffd54a; font-size:1.1em;
+    text-align:center; font-family:inherit; width:min(80%,260px); margin-bottom:8px;
+}
+.board { background:rgba(0,0,0,0.4); border-radius:14px; padding:10px 16px; margin:8px 0; min-width:240px; }
+.board h3 { color:#ffd54a; margin-bottom:6px; }
+.board .row { display:flex; justify-content:space-between; gap:14px; font-size:0.95em; padding:2px 0; }
+.hint { font-size:0.8em; color:#9fb0e0; margin-top:6px; }
+.shop-hint { display:flex; flex-wrap:wrap; gap:6px 12px; justify-content:center; max-width:420px; font-size:0.85em; margin:8px 0; }
+.shop-hint span { background:rgba(255,255,255,0.08); border-radius:10px; padding:3px 8px; }
+
+/* ===== Shop panel ===== */
+#shopOv {
+    position:absolute; inset:0; background:rgba(10,15,40,0.95); z-index:25;
+    display:none; flex-direction:column; align-items:center;
+    padding:14px 10px; overflow-y:auto;
+}
+#shopOv h1 {
+    font-size:clamp(1.4em,6vw,2.4em); font-weight:900; margin-bottom:4px;
+    background:linear-gradient(90deg,#ffd54a,#ff7bd5,#5dffb8,#ffd54a);
+    background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:rainbow 4s linear infinite;
+}
+#shopOv .sub { color:#9fb0e0; font-size:0.85em; margin-bottom:10px; text-align:center; }
+#shopGrid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px; width:100%; max-width:820px;
+}
+.house-card {
+    background:rgba(255,255,255,0.07); border:2px solid #5dffb8; border-radius:14px;
+    padding:8px; text-align:center; display:flex; flex-direction:column; align-items:center;
+}
+.house-card .emoji { font-size:2.4em; line-height:1.1; }
+.house-card .hname { font-weight:900; color:#ffd54a; font-size:1em; margin:2px 0; }
+.house-card .hdesc { font-size:0.72em; color:#dfe6ff; min-height:2.4em; line-height:1.2; }
+.house-card .hprice { font-size:0.85em; color:#9effa0; font-weight:bold; margin:3px 0; }
+.house-card .hinc { font-size:0.66em; color:#7fd1ff; }
+.house-card button {
+    margin-top:5px; background:linear-gradient(135deg,#5dffb8,#1aa86b); color:#06321f;
+    border:none; border-radius:18px; padding:5px 16px; font-weight:900; font-size:0.9em;
+    cursor:pointer; font-family:inherit; width:100%;
+}
+.house-card button:disabled { background:#555; color:#999; cursor:default; }
+#shopClose {
+    margin:12px 0 4px; background:linear-gradient(135deg,#ff7bd5,#c2185b); color:#fff;
+    border:none; border-radius:24px; padding:10px 28px; font-size:1.05em; font-weight:900;
+    cursor:pointer; font-family:inherit;
+}
+
+/* ===== Countdown overlay ===== */
+#countdownOv {
+    position:absolute; inset:0; z-index:30; display:none;
+    align-items:center; justify-content:center; pointer-events:none;
+    background:rgba(0,0,0,0.25);
+}
+#countdownNum {
+    font-size:clamp(6em,40vw,16em); font-weight:900; color:#ffd54a;
+    text-shadow:0 0 30px rgba(255,213,74,0.9), 0 6px 0 rgba(0,0,0,0.4);
+    animation:cdpop 0.55s ease-out;
+}
+@keyframes cdpop { 0%{transform:scale(0.3);opacity:0;} 40%{transform:scale(1.25);opacity:1;} 100%{transform:scale(1);opacity:1;} }
+
+/* ===== Toast ===== */
+#toast {
+    position:absolute; top:22%; left:50%; transform:translateX(-50%); z-index:32;
+    background:rgba(0,0,0,0.78); border:3px solid #ffd54a; border-radius:20px;
+    padding:12px 26px; font-size:clamp(1.1em,5vw,1.8em); font-weight:900; color:#ffd54a;
+    box-shadow:0 0 26px rgba(255,213,74,0.6); display:none; text-align:center;
+}
+
+/* ===== Touch shop button ===== */
+#shopBtn {
+    position:absolute; bottom:150px; left:12px; z-index:8; display:none;
+    background:linear-gradient(135deg,#5dffb8,#1aa86b); color:#06321f;
+    border:none; border-radius:50%; width:64px; height:64px; font-size:1.6em;
+    font-weight:900; cursor:pointer; box-shadow:0 0 16px rgba(93,255,184,0.6);
+}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+    <canvas id="cv"></canvas>
+
+    <div id="hud">
+        <div class="money-box">
+            <div class="big" id="cashLbl">₪0</div>
+            <div class="small" id="incLbl">+₪0 לשנייה</div>
+        </div>
+        <div id="richlist"><h4>🏆 השחקנים</h4><div id="rlBody"></div></div>
+    </div>
+
+    <button id="muteBtn">🔊</button>
+
+    <div id="buyprompt">
+        <div class="name" id="bpName"></div>
+        <div class="info" id="bpInfo"></div>
+        <div class="cost" id="bpCost"></div>
+        <button id="buyBtn">היכנס לחנות</button>
+    </div>
+
+    <button id="shopBtn">🛒</button>
+
+    <div id="pad"><div id="padbase"></div><div id="padstick"></div></div>
+
+    <!-- Shop panel -->
+    <div id="shopOv">
+        <h1>🛒 חנות הבתים</h1>
+        <div class="sub">שורה ראשונה של בתים שאפשר לבנות — בחר בית ובנה אותו! 🏠</div>
+        <div id="shopGrid"></div>
+        <button id="shopClose">✖️ סגור</button>
+    </div>
+
+    <!-- Countdown overlay -->
+    <div id="countdownOv"><div id="countdownNum"></div></div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+
+    <!-- Start overlay -->
+    <div class="overlay" id="startOv">
+        <h1>🏠 המרוץ לעשירות 💰</h1>
+        <p>אסוף מטבעות 💰, לך לחנות 🛒 שבמרכז, ובנה בתים! כל בית מרוויח לך כסף כל שנייה. תבנה עוד ועוד בתים עד שתגיע ל<b>בית החלומות 🏰💦</b>!</p>
+        <div class="shop-hint">
+            <span>🏚️ בית 1</span><span>🏠 בית 2</span><span>🏡 בית 3</span><span>🏘️ וילה</span><span>🏰💦 בית חלומות</span>
+        </div>
+        <input id="nameInput" placeholder="השם שלך..." maxlength="10">
+        <button class="btn" id="startBtn">🎮 התחל!</button>
+        <button class="btn alt" id="richBtn">💰 מיליון ₪ (רק ליוצר רום 👑)</button>
+        <p class="hint">מחשב: זוז עם WASD / חצים · היכנס לחנות עם רווח · פלאפון: ג'ויסטיק + כפתור 🛒</p>
+    </div>
+
+    <!-- Win overlay -->
+    <div class="overlay" id="winOv" style="display:none">
+        <h1>🎉 בנית את בית החלומות! 🏰</h1>
+        <p id="winText"></p>
+        <div class="board" id="winBoard"></div>
+        <button class="btn alt" id="contBtn">😊 המשך לשחק</button>
+        <button class="btn" id="againBtn">🔄 שחק שוב</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+// ================= Setup =================
+const cv = document.getElementById('cv');
+const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+const SCORE_KEY = 'romyon_rich_scores_v1';
+let muted = false;
+
+// World is a square plane centered at origin. WORLD = half-size (so world spans -WORLD..WORLD).
+const WORLD = 120;
+
+// ---------- Sound ----------
+let actx;
+function tone(freq, dur, type='square', vol=0.15) {
+    if (muted) return;
+    try {
+        if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = type; o.frequency.value = freq;
+        g.gain.value = vol; o.connect(g); g.connect(actx.destination);
+        o.start(); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+        o.stop(actx.currentTime+dur);
+    } catch(e){}
+}
+const sndCoin = ()=>{ tone(880,0.08,'square',0.18); setTimeout(()=>tone(1320,0.08,'square',0.16),60); };
+const sndBuy  = ()=>{ tone(523,0.1,'triangle',0.2); setTimeout(()=>tone(784,0.14,'triangle',0.2),90); };
+const sndNope = ()=>tone(150,0.15,'sawtooth',0.15);
+const sndWin  = ()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.2,'triangle',0.22),i*140)); };
+
+// ---------- Background music ----------
+const MUSIC = [523,659,784,659,587,784,880,784];
+let mi=0, musicTimer=null;
+function startMusic(){ if(musicTimer)return; musicTimer=setInterval(()=>{ if(!muted) tone(MUSIC[mi%MUSIC.length], 0.18,'sine',0.05); mi++; }, 320); }
+function stopMusic(){ clearInterval(musicTimer); musicTimer=null; }
+
+document.getElementById('muteBtn').onclick = ()=>{
+    muted=!muted; document.getElementById('muteBtn').textContent = muted?'🔇':'🔊';
+};
+
+// ================= Scoreboard =================
+function loadScores(){ try{ return JSON.parse(localStorage.getItem(SCORE_KEY))||{}; }catch{ return {}; } }
+function saveResult(name, worth){
+    const s = loadScores();
+    if(!s[name] || worth>s[name].best){ s[name]={best:worth}; }
+    localStorage.setItem(SCORE_KEY, JSON.stringify(s));
+}
+function topPlayers(){
+    const s=loadScores();
+    return Object.entries(s).map(([n,v])=>({n,best:v.best})).sort((a,b)=>b.best-a.best).slice(0,5);
+}
+
+// ================= Game state =================
+let player, coins, running, last, incomeAcc, coinTimer, elapsed, nearShop, shopOpen, busy;
+let startCash = 150;   // how much money the player starts with (millionaire button raises this)
+let keys={};
+
+// Home plot (where the player's house gets built)
+const HOME = { x:-44, z:74 };
+// Shop position (center plaza)
+const SHOP = { x:0, z:0 };
+// The dream-mansion house index that triggers the WIN
+const WIN_TIER = 6;
+
+// House definitions (the kid's exact order, names, prices, descriptions).
+// inc = passive income per second this house adds.
+const HOUSE_DEFS = [
+    { id:1,  name:'בית 1',  emoji:'🏚️',  price:1000,   inc:3,   desc:'בית קטן' },
+    { id:2,  name:'בית 2',  emoji:'🏠',   price:2500,   inc:8,   desc:'יותר יפה' },
+    { id:3,  name:'בית 3',  emoji:'🏡',   price:7000,   inc:20,  desc:'בית יפה' },
+    { id:4,  name:'בית 4',  emoji:'🏠✨', price:20000,  inc:50,  desc:'בית רגיל יפה מאוד' },
+    { id:5,  name:'בית 5',  emoji:'🏘️',  price:30000,  inc:90,  desc:'וילה' },
+    { id:6,  name:'בית 6',  emoji:'🏰💦', price:500000, inc:700, desc:'וילה עם בריכה מטורפת ו-4 קומות' },
+    { id:7,  name:'בית 7',  emoji:'🏨',   price:10000,  inc:35,  desc:'סוויטה יפה ומשופרת' },
+    { id:8,  name:'בית 8',  emoji:'🏯',   price:30000,  inc:110, desc:'וילה + סוויטה מטורפת' },
+    { id:9,  name:'בית 9',  emoji:'🏰',   price:50000,  inc:180, desc:'שווה כמו 100 וילות' },
+    { id:10, name:'בית 10', emoji:'🌆',   price:100000, inc:450, desc:'שווה סוויטה כפול 10,000' },
+];
+
+function netWorth(){ return player.cash + player.invested; }
+// income = SUM of incomes of every house the player has built (richer = own more)
+function incomePerSec(){ return player.owned.reduce((s,id)=>{ const h=HOUSE_DEFS.find(d=>d.id===id); return s+(h?h.inc:0); },0); }
+
+// ================= Format money =================
+function fmt(n){
+    n = Math.floor(n);
+    if(n>=1e9) return (n/1e9).toFixed(1)+' מיליארד';
+    if(n>=1e6) return (n/1e6).toFixed(1)+' מיליון';
+    if(n>=1000) return n.toLocaleString('en-US');
+    return ''+n;
+}
+
+// =====================================================================
+// ===================== THREE.JS 3D WORLD =============================
+// =====================================================================
+let scene, camera, renderer;
+let playerGroup, playerLegL, playerLegR, playerArmL, playerArmR;
+let coinMeshes = [];        // 3D coin objects, parallel-ish to `coins` data
+let cloudMeshes = [];       // drifting sky clouds
+let homeHouseGroup = null;  // holds the currently-built house on the home plot
+let groundSize = WORLD*2;
+const _tmpRight = new THREE.Vector3();
+const _tmpUp = new THREE.Vector3();
+const _tmpBack = new THREE.Vector3();
+
+// Make a canvas-text sprite (for emoji + Hebrew labels) that always faces the camera.
+function makeLabelSprite(text, fontSize=64, pad=20, color='#ffffff', bg='rgba(0,0,0,0.45)'){
+    const c = document.createElement('canvas');
+    const cx = c.getContext('2d');
+    const font = fontSize+'px "Comic Sans MS","Trebuchet MS",sans-serif';
+    cx.font = font;
+    const tw = cx.measureText(text).width;
+    c.width = Math.ceil(tw + pad*2);
+    c.height = Math.ceil(fontSize + pad*2);
+    cx.font = font;
+    cx.textAlign='center'; cx.textBaseline='middle';
+    if(bg){
+        cx.fillStyle = bg;
+        const r=18;
+        const x=0,y=0,w=c.width,h=c.height;
+        cx.beginPath();
+        cx.moveTo(x+r,y); cx.lineTo(x+w-r,y); cx.quadraticCurveTo(x+w,y,x+w,y+r);
+        cx.lineTo(x+w,y+h-r); cx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+        cx.lineTo(x+r,y+h); cx.quadraticCurveTo(x,y+h,x,y+h-r);
+        cx.lineTo(x,y+r); cx.quadraticCurveTo(x,y,x+r,y); cx.closePath(); cx.fill();
+    }
+    cx.fillStyle = color;
+    cx.fillText(text, c.width/2, c.height/2);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
+    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:false });
+    const sp = new THREE.Sprite(mat);
+    sp.userData.aspect = c.width/c.height;
+    sp.renderOrder = 10;
+    return sp;
+}
+function updateSpriteText(sprite, text, fontSize=48, pad=16, color='#ffffff', bg='rgba(0,0,0,0.45)'){
+    const newSp = makeLabelSprite(text, fontSize, pad, color, bg);
+    sprite.material.map.dispose();
+    sprite.material.map = newSp.material.map;
+    sprite.material.needsUpdate = true;
+    sprite.userData.aspect = newSp.userData.aspect;
+}
+
+function buildPlayerModel(){
+    const g = new THREE.Group();
+    // body
+    const bodyMat = new THREE.MeshLambertMaterial({ color:0x42a5f5 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.4,1.8,0.9), bodyMat);
+    body.position.y = 1.9; body.castShadow=true; g.add(body);
+    // head
+    const headMat = new THREE.MeshLambertMaterial({ color:0xffcc80 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.7,18,14), headMat);
+    head.position.y = 3.2; head.castShadow=true; g.add(head);
+    // top hat (rich look)
+    const hatMat = new THREE.MeshLambertMaterial({ color:0x222233 });
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,0.12,16), hatMat);
+    brim.position.y = 3.75; g.add(brim);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.9,16), hatMat);
+    top.position.y = 4.25; g.add(top);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.57,0.57,0.18,16), new THREE.MeshLambertMaterial({color:0xffd54a}));
+    band.position.y = 3.9; g.add(band);
+    // arms
+    const armMat = new THREE.MeshLambertMaterial({ color:0x2e7bd6 });
+    playerArmL = new THREE.Mesh(new THREE.BoxGeometry(0.35,1.4,0.35), armMat);
+    playerArmL.position.set(0.95,2.0,0); playerArmL.castShadow=true; g.add(playerArmL);
+    playerArmR = new THREE.Mesh(new THREE.BoxGeometry(0.35,1.4,0.35), armMat);
+    playerArmR.position.set(-0.95,2.0,0); playerArmR.castShadow=true; g.add(playerArmR);
+    // legs
+    const legMat = new THREE.MeshLambertMaterial({ color:0x37474f });
+    playerLegL = new THREE.Mesh(new THREE.BoxGeometry(0.5,1.4,0.5), legMat);
+    playerLegL.position.set(0.38,0.7,0); playerLegL.castShadow=true; g.add(playerLegL);
+    playerLegR = new THREE.Mesh(new THREE.BoxGeometry(0.5,1.4,0.5), legMat);
+    playerLegR.position.set(-0.38,0.7,0); playerLegR.castShadow=true; g.add(playerLegR);
+    // floating $ sign label above hat
+    const dollar = makeLabelSprite('💲', 80, 6, '#ffd54a', null);
+    dollar.position.set(0, 5.5, 0);
+    dollar.scale.set(1.6*dollar.userData.aspect, 1.6, 1);
+    g.add(dollar);
+    return g;
+}
+
+// ---- The big central SHOP building ----
+let shopGroupMesh = null, shopRing = null;
+function buildShopMesh(){
+    const grp = new THREE.Group();
+    grp.position.set(SHOP.x, 0, SHOP.z);
+
+    // main storefront (wide, colorful)
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(14,7,9),
+        new THREE.MeshLambertMaterial({ color:0xfff0c2 }));
+    wall.position.y = 3.5; wall.castShadow=true; wall.receiveShadow=true;
+    grp.add(wall);
+    // flat roof slab
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(15,0.8,10),
+        new THREE.MeshLambertMaterial({ color:0xc2185b }));
+    roof.position.y = 7.3; roof.castShadow=true; grp.add(roof);
+    // striped awning over front (red/white stripes)
+    for(let i=0;i<7;i++){
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(2,0.3,3),
+            new THREE.MeshLambertMaterial({ color: i%2 ? 0xffffff : 0xff5252 }));
+        stripe.position.set(-6+i*2, 4.6, 5.4);
+        stripe.rotation.x = -0.5;
+        grp.add(stripe);
+    }
+    // big glass windows
+    const glassMat = new THREE.MeshLambertMaterial({ color:0x7fd1ff, emissive:0x224466, emissiveIntensity:0.3 });
+    [-4.2,4.2].forEach(wx=>{
+        const win = new THREE.Mesh(new THREE.BoxGeometry(3.4,3,0.3), glassMat);
+        win.position.set(wx,3.6,4.55); grp.add(win);
+    });
+    // door (center)
+    const door = new THREE.Mesh(new THREE.BoxGeometry(2.4,3.4,0.3),
+        new THREE.MeshLambertMaterial({ color:0x5d4037 }));
+    door.position.set(0,1.7,4.55); grp.add(door);
+    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.18,8,6),
+        new THREE.MeshLambertMaterial({ color:0xffd54a }));
+    handle.position.set(0.8,1.7,4.75); grp.add(handle);
+
+    // glow ring on ground (pulses when near)
+    const ring = new THREE.Mesh(
+        new THREE.RingGeometry(8.5,10,40),
+        new THREE.MeshBasicMaterial({ color:0x5dffb8, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false })
+    );
+    ring.rotation.x=-Math.PI/2; ring.position.y=0.07; grp.add(ring);
+
+    // billboard sign: 🛒 חנות 😊
+    const sign = makeLabelSprite('🛒 חנות 😊', 70, 18, '#ffffff', 'rgba(20,10,40,0.7)');
+    sign.position.set(0, 10.3, 0);
+    sign.scale.set(4.6*sign.userData.aspect, 4.6, 1);
+    grp.add(sign);
+
+    scene.add(grp);
+    shopGroupMesh = grp; shopRing = ring;
+}
+
+// ---- Build a house mesh for a given tier (1..10). Fancier as tier rises. ----
+function buildHouseMesh(id){
+    const grp = new THREE.Group();
+    const L = (c)=>new THREE.MeshLambertMaterial({color:c});
+    function box(w,h,d,c,x,y,z){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),L(c)); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; grp.add(m); return m; }
+    function roof(w,h,d,c,x,y,z){ const m=new THREE.Mesh(new THREE.ConeGeometry(w,h,4),L(c)); m.position.set(x,y,z); m.rotation.y=Math.PI/4; m.castShadow=true; grp.add(m); return m; }
+    function windows(count,wy,half,front){ for(let i=0;i<count;i++){ const wx=(count===1)?0:(-half+ (i*(half*2)/(count-1))); const w=new THREE.Mesh(new THREE.BoxGeometry(1,1,0.2),L(0x90caf9)); w.position.set(wx,wy,front); grp.add(w);} }
+    function door(c,h,front){ const d=new THREE.Mesh(new THREE.BoxGeometry(1.2,h,0.25),L(0x5d4037)); d.position.set(0,h/2,front); grp.add(d); }
+    function chimney(x,y){ box(0.8,2,0.8,0x8d4a2b,x,y,0); }
+    function fence(rad){ for(let i=0;i<16;i++){ const a=i/16*Math.PI*2; const p=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.2,0.3),L(0xffffff)); p.position.set(Math.cos(a)*rad,0.6,Math.sin(a)*rad); grp.add(p);} }
+    function tower(x,h,c){ const t=box(2,h,2,c,x,h/2,0); roof(1.8,2.4,1.8,0xd84343,x,h+1.2,0); return t; }
+
+    switch(id){
+        case 1: { // tiny plain cottage
+            box(4,3,4,0xd7b899,0,1.5,0);
+            roof(3.2,2,3.2,0xb5462f,0,4,0);
+            door(0x5d4037,1.6,2.05); windows(1,2,0,2.05);
+            break;
+        }
+        case 2: { // bigger, nicer color, chimney
+            box(5,3.4,5,0xc8e6c9,0,1.7,0);
+            roof(3.9,2.3,3.9,0x6d4c41,0,4.5,0);
+            door(0x4e342e,1.8,2.55); windows(2,2.2,1.4,2.55);
+            chimney(1.4,4.6);
+            break;
+        }
+        case 3: { // pretty house + fence
+            box(6,3.8,6,0xffe0b2,0,1.9,0);
+            roof(4.6,2.6,4.6,0xc62828,0,5.1,0);
+            door(0x4e342e,2,3.05); windows(2,2.4,1.7,3.05);
+            chimney(1.8,5.2); fence(4.6);
+            break;
+        }
+        case 4: { // very nice, 2 floors hint, more windows
+            box(6.5,5,6.5,0xb3e5fc,0,2.5,0);
+            roof(5,2.8,5,0x4527a0,0,6.4,0);
+            door(0x3e2723,2.2,3.3); windows(3,3.5,2,3.3); windows(3,1.6,2,3.3);
+            chimney(2,6.8); fence(5);
+            break;
+        }
+        case 5: { // וילה - wide 2-storey
+            box(10,6,7,0xfff59d,0,3,0);
+            box(9,0.6,7.6,0x8d6e63,0,6.3,0);
+            door(0x3e2723,2.6,3.6); windows(4,4.2,3.5,3.6); windows(4,1.8,3.5,3.6);
+            fence(6);
+            break;
+        }
+        case 6: { // DREAM mansion: 4 storeys + pool. Most impressive.
+            box(11,16,9,0xffd54a,0,8,0);          // tall gold tower body (4 storeys)
+            box(12,0.8,10,0xff8f00,0,16.4,0);     // gold roof slab
+            // many windows per storey
+            for(let f=0;f<4;f++){ windows(4,2.5+f*3.7,4,4.6); }
+            door(0x6d4c41,3,4.6);
+            tower(-6,18,0xffe082); tower(6,18,0xffe082);   // side towers
+            // big blue swimming pool beside the mansion
+            const pool=new THREE.Mesh(new THREE.BoxGeometry(9,0.6,6),L(0x29b6f6));
+            pool.position.set(11,0.3,3); grp.add(pool);
+            const poolRim=new THREE.Mesh(new THREE.BoxGeometry(10,0.4,7),L(0xe0e0e0));
+            poolRim.position.set(11,0.1,3); grp.add(poolRim);
+            fence(9);
+            break;
+        }
+        case 7: { // suite hotel - tall slim, gold accents
+            box(7,11,7,0xb39ddb,0,5.5,0);
+            box(7.4,0.6,7.4,0xffd54a,0,11.2,0);
+            for(let f=0;f<3;f++){ windows(3,2.4+f*3.2,2.2,3.6); }
+            door(0x4e342e,2.6,3.6);
+            break;
+        }
+        case 8: { // וילה + סוויטה - L-shaped big
+            box(9,7,7,0xf48fb1,0,3.5,0);
+            box(6,11,6,0xce93d8,5,5.5,2);
+            box(9.4,0.6,7.4,0xffd54a,0,7.3,0);
+            for(let f=0;f<3;f++){ windows(3,2.4+f*3,2,3.6); }
+            door(0x4e342e,2.8,3.6); fence(8);
+            break;
+        }
+        case 9: { // huge luxury castle
+            box(13,13,11,0xffe082,0,6.5,0);
+            box(14,0.8,12,0xff6f00,0,13.4,0);
+            for(let f=0;f<4;f++){ windows(5,2.6+f*3,5,5.6); }
+            door(0x4e342e,3.2,5.6);
+            tower(-7,17,0xfff59d); tower(7,17,0xfff59d);
+            tower(0,20,0xffca28);
+            fence(10);
+            break;
+        }
+        case 10: { // mega skyline mansion - tallest, gold, lots of windows
+            box(14,22,12,0xfff176,0,11,0);
+            box(15,0.9,13,0xffab00,0,22.5,0);
+            for(let f=0;f<6;f++){ windows(5,2.8+f*3.3,5.5,6.1); }
+            door(0x4e342e,3.4,6.1);
+            tower(-8,26,0xffd54a); tower(8,26,0xffd54a);
+            tower(0,30,0xffecb3);
+            // gold trim band
+            box(14.5,0.7,12.5,0xffab00,0,4,0);
+            fence(11);
+            break;
+        }
+    }
+    return grp;
+}
+
+function initThree(){
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x9fd8ff);
+    scene.fog = new THREE.Fog(0x9fd8ff, 150, 320);
+
+    camera = new THREE.PerspectiveCamera(55, 1, 0.1, 700);
+    camera.position.set(0, 16, 22);
+    camera.lookAt(0,2,0);
+
+    renderer = new THREE.WebGLRenderer({ canvas:cv, antialias:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // lights
+    const amb = new THREE.AmbientLight(0xffffff, 0.75);
+    scene.add(amb);
+    const sun = new THREE.DirectionalLight(0xfff4d6, 1.05);
+    sun.position.set(30, 60, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048,2048);
+    sun.shadow.camera.left=-WORLD; sun.shadow.camera.right=WORLD;
+    sun.shadow.camera.top=WORLD; sun.shadow.camera.bottom=-WORLD;
+    sun.shadow.camera.near=1; sun.shadow.camera.far=300;
+    scene.add(sun);
+
+    // ground (grass)
+    groundSize = WORLD*2 + 40;
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(groundSize, groundSize),
+        new THREE.MeshLambertMaterial({ color:0x76c043 })
+    );
+    ground.rotation.x = -Math.PI/2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // checkerboard grass tiles for a richer look
+    const tileGeo = new THREE.PlaneGeometry(20,20);
+    const tileMat = new THREE.MeshLambertMaterial({ color:0x82cc4e });
+    for(let gx=-WORLD; gx<WORLD; gx+=20){
+        for(let gz=-WORLD; gz<WORLD; gz+=20){
+            if(((gx/20)+(gz/20))%2!==0) continue;
+            const tile = new THREE.Mesh(tileGeo, tileMat);
+            tile.rotation.x=-Math.PI/2; tile.position.set(gx+10,0.02,gz+10);
+            tile.receiveShadow=true; scene.add(tile);
+        }
+    }
+
+    // central town plaza (sandy circle) where paths meet
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(16,40),
+        new THREE.MeshLambertMaterial({ color:0xe8d8a0 }));
+    plaza.rotation.x=-Math.PI/2; plaza.position.y=0.04; plaza.receiveShadow=true;
+    scene.add(plaza);
+
+    // dirt path from shop (plaza center) out to the home plot
+    const pathMat = new THREE.MeshLambertMaterial({ color:0xcdb377 });
+    {
+        const len = Math.hypot(HOME.x, HOME.z);
+        const path = new THREE.Mesh(new THREE.PlaneGeometry(6, len), pathMat);
+        path.rotation.x=-Math.PI/2;
+        path.rotation.z = -Math.atan2(HOME.x, HOME.z);
+        path.position.set(HOME.x/2, 0.03, HOME.z/2);
+        path.receiveShadow=true; scene.add(path);
+    }
+
+    // a big lake
+    const lake = new THREE.Mesh(new THREE.CircleGeometry(22, 40),
+        new THREE.MeshLambertMaterial({ color:0x3fa9f5, transparent:true, opacity:0.85 }));
+    lake.rotation.x=-Math.PI/2; lake.position.set(-78,0.05,-70);
+    scene.add(lake);
+    const lakeRim = new THREE.Mesh(new THREE.RingGeometry(22,25,40),
+        new THREE.MeshLambertMaterial({ color:0xe8d8a0, side:THREE.DoubleSide }));
+    lakeRim.rotation.x=-Math.PI/2; lakeRim.position.set(-78,0.045,-70);
+    scene.add(lakeRim);
+
+    // helper: a tree
+    function addTree(tx,tz,scale=1){
+        const tree = new THREE.Group();
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,3.4,8), new THREE.MeshLambertMaterial({color:0x8d5a2b}));
+        trunk.position.y=1.7*scale; trunk.castShadow=true; tree.add(trunk);
+        const c1 = new THREE.Mesh(new THREE.SphereGeometry(2.4,10,8), new THREE.MeshLambertMaterial({color:0x3aa655}));
+        c1.position.y=4.3*scale; c1.castShadow=true; tree.add(c1);
+        const c2 = new THREE.Mesh(new THREE.SphereGeometry(1.7,10,8), new THREE.MeshLambertMaterial({color:0x46b863}));
+        c2.position.set(1.3,3.4*scale,0.6); c2.castShadow=true; tree.add(c2);
+        tree.position.set(tx,0,tz); tree.scale.setScalar(scale);
+        scene.add(tree);
+    }
+    // lots of trees scattered (avoid center plaza + lake + businesses)
+    let placed=0, tries=0;
+    while(placed<60 && tries<600){
+        tries++;
+        const tx=(Math.random()*2-1)*(WORLD-6), tz=(Math.random()*2-1)*(WORLD-6);
+        if(Math.hypot(tx,tz) < 22) continue;                 // plaza / shop
+        if(Math.hypot(tx+78,tz+70) < 28) continue;           // lake
+        if(Math.hypot(tx-HOME.x,tz-HOME.z) < 22) continue;   // home plot
+        addTree(tx,tz, 0.8+Math.random()*0.7);
+        placed++;
+    }
+
+    // colorful flowers near the plaza
+    const flowerColors=[0xff5cb8,0xffd54a,0xff7043,0xba68c8,0xffffff];
+    for(let i=0;i<70;i++){
+        const a=Math.random()*Math.PI*2, rr=17+Math.random()*70;
+        const fx=Math.cos(a)*rr, fz=Math.sin(a)*rr;
+        if(Math.hypot(fx-HOME.x,fz-HOME.z)<10) continue;
+        const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,1,5), new THREE.MeshLambertMaterial({color:0x2e7d32}));
+        stem.position.set(fx,0.5,fz); scene.add(stem);
+        const bloom=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6), new THREE.MeshLambertMaterial({color:flowerColors[i%flowerColors.length]}));
+        bloom.position.set(fx,1.05,fz); scene.add(bloom);
+    }
+
+    // fluffy clouds floating in the sky
+    cloudMeshes = [];
+    const cloudMat = new THREE.MeshLambertMaterial({color:0xffffff});
+    for(let i=0;i<12;i++){
+        const cl=new THREE.Group();
+        for(let j=0;j<4;j++){
+            const puff=new THREE.Mesh(new THREE.SphereGeometry(3+Math.random()*2,8,6), cloudMat);
+            puff.position.set((Math.random()-0.5)*8, (Math.random()-0.5)*2, (Math.random()-0.5)*5);
+            cl.add(puff);
+        }
+        cl.position.set((Math.random()*2-1)*WORLD, 42+Math.random()*14, (Math.random()*2-1)*WORLD);
+        cl.userData.speed = 1.5+Math.random()*2;
+        scene.add(cl); cloudMeshes.push(cl);
+    }
+
+    // lampposts around the plaza
+    for(let i=0;i<8;i++){
+        const a=i/8*Math.PI*2;
+        const lx=Math.cos(a)*15, lz=Math.sin(a)*15;
+        const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.3,6,8), new THREE.MeshLambertMaterial({color:0x37474f}));
+        pole.position.set(lx,3,lz); pole.castShadow=true; scene.add(pole);
+        const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.6,10,8), new THREE.MeshLambertMaterial({color:0xfff3b0, emissive:0xffd54a, emissiveIntensity:0.6}));
+        lamp.position.set(lx,6.2,lz); scene.add(lamp);
+    }
+
+    // low fence around the whole world edge
+    const fenceMat = new THREE.MeshLambertMaterial({color:0xffffff});
+    for(let p=-WORLD; p<=WORLD; p+=10){
+        [[p,-WORLD],[p,WORLD],[-WORLD,p],[WORLD,p]].forEach(([px,pz])=>{
+            const post=new THREE.Mesh(new THREE.BoxGeometry(0.6,3,0.6), fenceMat);
+            post.position.set(px,1.5,pz); scene.add(post);
+        });
+    }
+
+    // the big central SHOP
+    buildShopMesh();
+
+    // home plot: little patch + sign "🏠 הבית שלי"
+    const plot = new THREE.Mesh(new THREE.CircleGeometry(12,36),
+        new THREE.MeshLambertMaterial({ color:0xa5d6a7 }));
+    plot.rotation.x=-Math.PI/2; plot.position.set(HOME.x,0.05,HOME.z);
+    plot.receiveShadow=true; scene.add(plot);
+    const plotPost = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,4,8),
+        new THREE.MeshLambertMaterial({color:0x8d5a2b}));
+    plotPost.position.set(HOME.x-9, 2, HOME.z); scene.add(plotPost);
+    const plotSign = makeLabelSprite('🏠 הבית שלי', 48, 14, '#ffffff', 'rgba(0,0,0,0.6)');
+    plotSign.position.set(HOME.x-9, 5, HOME.z);
+    plotSign.scale.set(2.6*plotSign.userData.aspect, 2.6, 1);
+    scene.add(plotSign);
+
+    // group that holds the currently-built house (replaced on each build)
+    homeHouseGroup = new THREE.Group();
+    homeHouseGroup.position.set(HOME.x, 0, HOME.z);
+    scene.add(homeHouseGroup);
+
+    // player
+    playerGroup = buildPlayerModel();
+    scene.add(playerGroup);
+
+    // build the yellow school bus (hidden until used)
+    buildBusMesh();
+
+    resizeRenderer();
+    window.addEventListener('resize', resizeRenderer);
+}
+
+// ---- yellow school bus (built once, reused for the delivery animation) ----
+let busGroup = null;
+function buildBusMesh(){
+    const g = new THREE.Group();
+    const L=(c)=>new THREE.MeshLambertMaterial({color:c});
+    const body = new THREE.Mesh(new THREE.BoxGeometry(8,3.4,3.4), L(0xffd600));
+    body.position.y=2.4; body.castShadow=true; g.add(body);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(7.4,0.5,3.4), L(0xffea00));
+    top.position.y=4.2; g.add(top);
+    // windows strip
+    for(let i=0;i<4;i++){
+        const w=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.1,0.2), L(0x90caf9));
+        w.position.set(-2.6+i*1.6,3.1,1.75); g.add(w);
+        const w2=w.clone(); w2.position.z=-1.75; g.add(w2);
+    }
+    // black wheels
+    const wheelGeo=new THREE.CylinderGeometry(0.9,0.9,0.6,14);
+    [[2.4,1.85],[-2.4,1.85],[2.4,-1.85],[-2.4,-1.85]].forEach(([wx,wz])=>{
+        const wh=new THREE.Mesh(wheelGeo, L(0x111111));
+        wh.rotation.x=Math.PI/2; wh.position.set(wx,0.9,wz); wh.castShadow=true; g.add(wh);
+    });
+    const sign = makeLabelSprite('🚌', 80, 4, '#fff', null);
+    sign.position.set(0,6,0); sign.scale.set(2.6*sign.userData.aspect,2.6,1); g.add(sign);
+    g.visible=false; g.position.set(SHOP.x,0,SHOP.z);
+    scene.add(g); busGroup=g;
+}
+
+function resizeRenderer(){
+    const rect = cv.getBoundingClientRect();
+    const w = Math.max(2, rect.width|0), h = Math.max(2, rect.height|0);
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+}
+
+// ---- coin 3D objects ----
+const coinGeo = new THREE.CylinderGeometry(1.0,1.0,0.28,18);
+const coinMat = new THREE.MeshLambertMaterial({ color:0xffd54a, emissive:0x6b5200, emissiveIntensity:0.3 });
+function makeCoinMesh(){
+    const m = new THREE.Mesh(coinGeo, coinMat);
+    m.rotation.z = Math.PI/2;     // lay it like a spinning disc standing up
+    m.castShadow = true;
+    return m;
+}
+
+function spawnCoin(){
+    // scatter within a radius around the town (not in far empty corners)
+    const a = Math.random()*Math.PI*2, rr = 6 + Math.random()*92;
+    const c = {
+        x: Math.cos(a)*rr,
+        z: Math.sin(a)*rr,
+        val: 15 + Math.floor(Math.random()*31),
+        spin: Math.random()*Math.PI*2,
+        bob: Math.random()*Math.PI*2,
+        mesh: makeCoinMesh(),
+    };
+    c.mesh.position.set(c.x, 1.2, c.z);
+    scene.add(c.mesh);
+    coins.push(c);
+}
+function removeCoin(i){
+    const c = coins[i];
+    scene.remove(c.mesh);
+    coins.splice(i,1);
+}
+
+function initState(){
+    player = { x:0, z:8, r:2.4, cash:startCash, invested:0, speed:30, yaw:0, bob:0, owned:[] };
+    coins = [];
+    incomeAcc=0; coinTimer=0; elapsed=0; nearShop=false; shopOpen=false; busy=false;
+
+    // clear any previously-built house
+    if(homeHouseGroup){ while(homeHouseGroup.children.length) homeHouseGroup.remove(homeHouseGroup.children[0]); }
+
+    // place player (just in front of the shop)
+    playerGroup.position.set(player.x, 0, player.z);
+    playerGroup.rotation.y = player.yaw;
+
+    for(let i=0;i<10;i++) spawnCoin();
+}
+
+function clearWorldObjects(){
+    // remove old coins
+    if(coins){ coins.forEach(c=> scene.remove(c.mesh)); }
+}
+
+// ================= Input =================
+window.addEventListener('keydown', e=>{
+    keys[e.key.toLowerCase()]=true; keys[e.code]=true;
+    if(e.key===' '||e.code==='Space'){ e.preventDefault(); openShop(); }
+});
+window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; keys[e.code]=false; });
+
+// Joystick
+let joyDX=0, joyDY=0, joyActive=false;
+const pad=document.getElementById('pad'), stick=document.getElementById('padstick');
+function joyStart(e){ joyActive=true; joyMove(e); }
+function joyMove(e){
+    if(!joyActive) return;
+    const t=e.touches?e.touches[0]:e;
+    const r=pad.getBoundingClientRect();
+    let dx=t.clientX-(r.left+r.width/2), dy=t.clientY-(r.top+r.height/2);
+    const max=r.width/2, len=Math.hypot(dx,dy);
+    if(len>max){ dx=dx/len*max; dy=dy/len*max; }
+    joyDX=dx/max; joyDY=dy/max;
+    stick.style.left=(38+dx)+'px'; stick.style.top=(38+dy)+'px';
+}
+function joyEnd(){ joyActive=false; joyDX=joyDY=0; stick.style.left='38px'; stick.style.top='38px'; }
+pad.addEventListener('touchstart',joyStart,{passive:false});
+pad.addEventListener('touchmove',e=>{e.preventDefault();joyMove(e);},{passive:false});
+pad.addEventListener('touchend',joyEnd);
+pad.addEventListener('mousedown',joyStart);
+window.addEventListener('mousemove',e=>{if(joyActive)joyMove(e);});
+window.addEventListener('mouseup',joyEnd);
+
+document.getElementById('buyBtn').onclick = openShop;
+document.getElementById('shopBtn').onclick = openShop;
+document.getElementById('shopClose').onclick = closeShop;
+
+// ---- Shop panel ----
+function buildShopGrid(){
+    const grid = document.getElementById('shopGrid');
+    grid.innerHTML = '';
+    HOUSE_DEFS.forEach(h=>{
+        const card = document.createElement('div');
+        card.className = 'house-card';
+        const afford = player.cash >= h.price;
+        card.innerHTML =
+            `<div class="emoji">${h.emoji}</div>`+
+            `<div class="hname">${h.name}</div>`+
+            `<div class="hdesc">${h.desc}</div>`+
+            `<div class="hprice">₪${fmt(h.price)}</div>`+
+            `<div class="hinc">+₪${h.inc} לשנייה</div>`+
+            `<button ${afford?'':'disabled'}>בנה 🔨</button>`;
+        card.querySelector('button').onclick = ()=> buyHouse(h);
+        grid.appendChild(card);
+    });
+}
+function openShop(){
+    if(!running || !nearShop || shopOpen || busy) return;
+    shopOpen = true;
+    buildShopGrid();
+    document.getElementById('shopOv').style.display = 'flex';
+}
+function closeShop(){
+    shopOpen = false;
+    document.getElementById('shopOv').style.display = 'none';
+}
+
+function buyHouse(h){
+    if(player.cash < h.price){ sndNope(); return; }
+    player.cash -= h.price;
+    player.invested += h.price;
+    player.owned.push(h.id);
+    sndBuy();
+    closeShop();
+    updateHud();
+    startBuildSequence(h);
+}
+
+// ---- Countdown 10..1, then bus drives to home plot, then house pops up ----
+function startBuildSequence(h){
+    busy = true;
+    const cdOv = document.getElementById('countdownOv');
+    const cdNum = document.getElementById('countdownNum');
+    cdOv.style.display = 'flex';
+    let n = 10;
+    function tick(){
+        if(n<=0){
+            cdOv.style.display = 'none';
+            driveBus(h);
+            return;
+        }
+        cdNum.textContent = n;
+        cdNum.style.animation='none'; void cdNum.offsetWidth; cdNum.style.animation='';
+        tone(440+(10-n)*40, 0.12, 'square', 0.16);
+        n--;
+        setTimeout(tick, 550);
+    }
+    tick();
+}
+
+function driveBus(h){
+    // bus starts at shop, drives to home plot
+    const startX=SHOP.x, startZ=SHOP.z, endX=HOME.x, endZ=HOME.z+10;
+    busGroup.position.set(startX,0,startZ);
+    busGroup.rotation.y = Math.atan2(endX-startX, endZ-startZ);
+    busGroup.visible = true;
+    const dur = 2600, t0 = performance.now();
+    function step(now){
+        let p = Math.min(1,(now-t0)/dur);
+        const e = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2; // ease in-out
+        busGroup.position.x = startX+(endX-startX)*e;
+        busGroup.position.z = startZ+(endZ-startZ)*e;
+        // wheels-ish bob
+        busGroup.position.y = Math.abs(Math.sin(now*0.02))*0.15;
+        // ride along: player rides just behind the bus so the camera follows
+        player.x = busGroup.position.x;
+        player.z = busGroup.position.z + 6;
+        if(p<1){ requestAnimationFrame(step); }
+        else { busGroup.visible=false; finishBuild(h); }
+    }
+    requestAnimationFrame(step);
+}
+
+function finishBuild(h){
+    // remove old house, add new one
+    while(homeHouseGroup.children.length) homeHouseGroup.remove(homeHouseGroup.children[0]);
+    const mesh = buildHouseMesh(h.id);
+    homeHouseGroup.add(mesh);
+    // pop-in animation
+    homeHouseGroup.scale.set(0.01,0.01,0.01);
+    const t0=performance.now();
+    function pop(now){
+        let p=Math.min(1,(now-t0)/450);
+        const s=p<1 ? (p*1.12) : 1;
+        homeHouseGroup.scale.set(s,s,s);
+        if(p<1) requestAnimationFrame(pop); else homeHouseGroup.scale.set(1,1,1);
+    }
+    requestAnimationFrame(pop);
+    // celebration: particles + sound + toast
+    sndWin();
+    spawnConfetti(HOME.x, HOME.z);
+    showToast('🏠 הבית מוכן!');
+    // move player to their new house
+    player.x = HOME.x; player.z = HOME.z+8;
+    busy = false;
+    updateHud();
+    // WIN on the dream mansion (#6) — but player can keep playing
+    if(h.id===WIN_TIER) win();
+}
+
+// confetti particles at a world position
+let confetti=[];
+function spawnConfetti(wx,wz){
+    for(let i=0;i<40;i++){
+        const m=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),
+            new THREE.MeshLambertMaterial({color:[0xffd54a,0xff7bd5,0x5dffb8,0x7fd1ff][i%4]}));
+        m.position.set(wx+(Math.random()-0.5)*8, 6+Math.random()*4, wz+(Math.random()-0.5)*8);
+        m.userData.vy = 4+Math.random()*5;
+        m.userData.vx = (Math.random()-0.5)*6;
+        m.userData.vz = (Math.random()-0.5)*6;
+        m.userData.life = 1.6;
+        scene.add(m); confetti.push(m);
+    }
+}
+
+let toastTimer=null;
+function showToast(txt){
+    const t=document.getElementById('toast');
+    t.textContent=txt; t.style.display='block';
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>{ t.style.display='none'; }, 2200);
+}
+
+// ================= Loop =================
+function loop(t){
+    if(!running) return;
+    if(!last) last=t;
+    const dt = Math.min(0.05,(t-last)/1000); last=t;
+    elapsed += dt;
+
+    // ---- input forward/right (camera-relative) ----
+    // inputForward: +1 = away from camera (W / joystick up)
+    // inputRight:   +1 = player's RIGHT (D / joystick right)
+    let inF=0, inR=0;
+    if(shopOpen || busy){ /* freeze movement while shopping / building */ }
+    else if(IS_TOUCH && (Math.abs(joyDX)>0.08||Math.abs(joyDY)>0.08)){
+        inR = joyDX;
+        inF = -joyDY;          // joystick up (negative screen-y) => forward
+    } else {
+        if(keys['w']||keys['KeyW']||keys['arrowup']||keys['ArrowUp']) inF+=1;
+        if(keys['s']||keys['KeyS']||keys['arrowdown']||keys['ArrowDown']) inF-=1;
+        if(keys['a']||keys['KeyA']||keys['arrowleft']||keys['ArrowLeft']) inR-=1;
+        if(keys['d']||keys['KeyD']||keys['arrowright']||keys['ArrowRight']) inR+=1;
+    }
+
+    // Derive movement basis straight from the camera world matrix.
+    camera.matrixWorld.extractBasis(_tmpRight, _tmpUp, _tmpBack);
+    // forward = -back projected to ground; right = +right projected to ground
+    let fX = -_tmpBack.x, fZ = -_tmpBack.z;
+    let rX =  _tmpRight.x, rZ = _tmpRight.z;
+    let fl = Math.hypot(fX,fZ) || 1; fX/=fl; fZ/=fl;
+    let rl = Math.hypot(rX,rZ) || 1; rX/=rl; rZ/=rl;
+
+    let moveX = fX*inF + rX*inR;
+    let moveZ = fZ*inF + rZ*inR;
+    const mlen = Math.hypot(moveX, moveZ);
+    let moving=false;
+    if(mlen>0.05){
+        moveX/=mlen; moveZ/=mlen; moving=true;
+        player.x += moveX*player.speed*dt;
+        player.z += moveZ*player.speed*dt;
+        player.yaw = Math.atan2(moveX, moveZ);  // face movement direction
+        player.bob += dt*12;
+    }
+    // clamp to world
+    const lim = WORLD-2;
+    player.x = Math.max(-lim, Math.min(lim, player.x));
+    player.z = Math.max(-lim, Math.min(lim, player.z));
+
+    // ---- update player model ----
+    playerGroup.position.set(player.x, 0, player.z);
+    // smooth turn toward yaw
+    let dy = player.yaw - playerGroup.rotation.y;
+    while(dy> Math.PI) dy-=Math.PI*2;
+    while(dy<-Math.PI) dy+=Math.PI*2;
+    playerGroup.rotation.y += dy*Math.min(1, dt*12);
+    // walk bob + limb swing
+    if(moving){
+        const sw = Math.sin(player.bob);
+        playerGroup.position.y = Math.abs(Math.sin(player.bob))*0.25;
+        playerLegL.rotation.x =  sw*0.7;
+        playerLegR.rotation.x = -sw*0.7;
+        playerArmL.rotation.x = -sw*0.5;
+        playerArmR.rotation.x =  sw*0.5;
+    } else {
+        playerGroup.position.y *= 0.8;
+        playerLegL.rotation.x*=0.8; playerLegR.rotation.x*=0.8;
+        playerArmL.rotation.x*=0.8; playerArmR.rotation.x*=0.8;
+    }
+
+    // ---- third-person follow camera (FIXED angle, behind & above) ----
+    // The camera does NOT rotate with the player — it always looks the same
+    // direction (north / -Z). This keeps walking straight & comfortable:
+    // pressing D always moves right on screen, no spinning/"bending".
+    const camDist = 22, camHeight = 16;
+    const desired = new THREE.Vector3(player.x, camHeight, player.z + camDist);
+    camera.position.lerp(desired, Math.min(1, dt*6));
+    camera.lookAt(player.x, 3, player.z);
+    camera.updateMatrixWorld();   // ensure basis is fresh for next frame's input
+
+    // ---- coins: spin, bob, collect ----
+    for(let i=coins.length-1;i>=0;i--){
+        const c=coins[i];
+        c.spin += dt*3; c.bob += dt*3;
+        c.mesh.rotation.y = c.spin;
+        c.mesh.position.y = 1.2 + Math.sin(c.bob)*0.3;
+        if(Math.hypot(c.x-player.x, c.z-player.z) < player.r+1.8){
+            player.cash += c.val; sndCoin();
+            removeCoin(i);
+        }
+    }
+    coinTimer+=dt;
+    if(coinTimer>1.0 && coins.length<14){ spawnCoin(); coinTimer=0; }
+
+    // ---- drifting clouds ----
+    for(const cl of cloudMeshes){
+        cl.position.x += cl.userData.speed*dt;
+        if(cl.position.x > WORLD+20) cl.position.x = -WORLD-20;
+    }
+
+    // ---- passive income ----
+    incomeAcc += incomePerSec()*dt;
+    if(incomeAcc>=1){ const add=Math.floor(incomeAcc); player.cash+=add; incomeAcc-=add; }
+
+    // ---- near the shop? (open with Space / 🛒 button) ----
+    const dShop = Math.hypot(SHOP.x-player.x, SHOP.z-player.z);
+    nearShop = dShop < 13;
+    // pulse the shop ring when near
+    const pulse = 0.4 + Math.abs(Math.sin(elapsed*3))*0.4;
+    if(shopRing) shopRing.material.opacity = nearShop ? pulse : 0;
+
+    // ---- confetti particles ----
+    for(let i=confetti.length-1;i>=0;i--){
+        const m=confetti[i];
+        m.userData.life -= dt;
+        m.position.x += m.userData.vx*dt;
+        m.position.y += m.userData.vy*dt;
+        m.position.z += m.userData.vz*dt;
+        m.userData.vy -= 12*dt;
+        m.rotation.x += dt*6; m.rotation.y += dt*5;
+        if(m.userData.life<=0 || m.position.y<0){ scene.remove(m); confetti.splice(i,1); }
+    }
+
+    renderer.render(scene, camera);
+    updateHud();
+    requestAnimationFrame(loop);
+}
+
+// ================= HUD =================
+function updateHud(){
+    document.getElementById('cashLbl').textContent = '₪'+fmt(netWorth());
+    document.getElementById('incLbl').innerHTML = '+₪'+fmt(incomePerSec())+' לשנייה';
+
+    // rich list — only REAL players. You (live) on top, then saved records.
+    const saved = topPlayers().filter(p=>p.n!==curName);
+    let html = `<div class="rl-row me"><span class="rl-rank">★</span><span>${curName} (אתה)</span><span>₪${fmt(netWorth())}</span></div>`;
+    if(saved.length){
+        saved.forEach(p=>{
+            html += `<div class="rl-row"><span></span><span>${p.n}</span><span>₪${fmt(p.best)}</span></div>`;
+        });
+    } else {
+        html += `<div class="rl-row" style="opacity:0.6"><span></span><span>אין עדיין שיאים</span><span></span></div>`;
+    }
+    document.getElementById('rlBody').innerHTML = html;
+
+    // shop entry prompt
+    const bp=document.getElementById('buyprompt');
+    if(nearShop && running && !shopOpen && !busy){
+        bp.style.display='block';
+        document.getElementById('bpName').textContent = 'היכנס לחנות 🛒 (רווח)';
+        document.getElementById('bpInfo').textContent = 'בנה בתים שמרוויחים לך כסף!';
+        document.getElementById('bpCost').textContent = '';
+        document.getElementById('buyBtn').disabled = false;
+    } else { bp.style.display='none'; }
+}
+
+// ================= Win =================
+let didWin=false;
+function win(){
+    sndWin();
+    saveResult(curName, Math.floor(netWorth()));
+    didWin=true;
+    document.getElementById('winText').innerHTML =
+        `<b>${curName}</b>, בנית את בית החלומות 🏰💦!<br>השווי שלך: <b>₪${fmt(netWorth())}</b><br>בזמן: ${elapsed.toFixed(0)} שניות ⏱️<br>אפשר להמשיך לשחק ולבנות עוד בתים 😊`;
+    const tp=topPlayers();
+    let bh='<h3>🏆 שיאים</h3>';
+    tp.forEach((p,i)=>{ bh+=`<div class="row"><span>${i+1}. ${p.n}</span><span>₪${fmt(p.best)}</span></div>`; });
+    document.getElementById('winBoard').innerHTML=bh;
+    document.getElementById('winOv').style.display='flex';
+}
+
+// ================= Start =================
+let curName='רום';
+function start(){
+    curName = (document.getElementById('nameInput').value || 'שחקן').trim().slice(0,10);
+    document.getElementById('startOv').style.display='none';
+    document.getElementById('winOv').style.display='none';
+    document.getElementById('shopOv').style.display='none';
+    didWin=false;
+    if(IS_TOUCH){ pad.style.display='block'; document.getElementById('shopBtn').style.display='block'; }
+    clearWorldObjects();
+    initState();
+    resizeRenderer();
+    running=true; last=0;
+    startMusic();
+    updateHud();
+    requestAnimationFrame(loop);
+}
+document.getElementById('startBtn').onclick = ()=>{ startCash = 150; start(); };
+document.getElementById('richBtn').onclick = ()=>{
+    const nm = (document.getElementById('nameInput').value || '').trim();
+    // Only the creator (רום) gets the million.
+    if(nm === 'רום'){ startCash = 1000000; start(); }
+    else { alert('💰 רק רום — היוצר 👑 — יכול להתחיל עם מיליון!\nכתוב "רום" בשם כדי לקבל אותו.'); }
+};
+document.getElementById('contBtn').onclick = ()=>{
+    // keep playing: just hide the win overlay, game loop is still running
+    document.getElementById('winOv').style.display='none';
+};
+document.getElementById('againBtn').onclick = ()=>{
+    running=false; stopMusic();
+    document.getElementById('winOv').style.display='none';
+    document.getElementById('startOv').style.display='flex';
+};
+
+// boot the 3D scene immediately so the canvas is ready behind the start overlay
+initThree();
+renderer.render(scene, camera);
+</script>
+</body>
+</html>
