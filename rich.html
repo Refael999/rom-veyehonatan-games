@@ -294,6 +294,8 @@ function topPlayers(){
 
 // ================= Game state =================
 let player, coins, running, last, incomeAcc, coinTimer, elapsed, nearShop, shopOpen, busy, saveAcc=0;
+// camera orbit angles (mouse-controlled): camYaw = spin around, camPitch = up/down
+let camYaw=0, camPitch=0.62;
 let startCash = 150;   // how much money the player starts with (millionaire button raises this)
 let keys={};
 
@@ -839,6 +841,7 @@ function initState(){
     player = { x:0, z:8, r:2.4, cash:startCash, invested:0, speed:30, yaw:0, bob:0, owned:[] };
     coins = [];
     incomeAcc=0; coinTimer=0; elapsed=0; nearShop=false; shopOpen=false; busy=false; saveAcc=0;
+    camYaw=0; camPitch=0.62;   // reset camera behind the player
 
     // clear any previously-built house
     if(homeHouseGroup){ while(homeHouseGroup.children.length) homeHouseGroup.remove(homeHouseGroup.children[0]); }
@@ -883,6 +886,18 @@ pad.addEventListener('touchend',joyEnd);
 pad.addEventListener('mousedown',joyStart);
 window.addEventListener('mousemove',e=>{if(joyActive)joyMove(e);});
 window.addEventListener('mouseup',joyEnd);
+
+// ---- Mouse look: drag on the 3D view to spin the camera & look up/down ----
+let lookDrag=false, lookLX=0, lookLY=0;
+cv.addEventListener('mousedown', e=>{ lookDrag=true; lookLX=e.clientX; lookLY=e.clientY; });
+window.addEventListener('mousemove', e=>{
+    if(!lookDrag) return;
+    const dx = e.clientX - lookLX, dy = e.clientY - lookLY;
+    lookLX = e.clientX; lookLY = e.clientY;
+    camYaw  -= dx * 0.006;                                   // left/right spin
+    camPitch = Math.max(0.12, Math.min(1.45, camPitch + dy*0.005)); // up/down (clamped)
+});
+window.addEventListener('mouseup', ()=>{ lookDrag=false; });
 
 document.getElementById('buyBtn').onclick = openShop;
 document.getElementById('shopBtn').onclick = openShop;
@@ -1096,14 +1111,20 @@ function loop(t){
         playerArmL.rotation.x*=0.8; playerArmR.rotation.x*=0.8;
     }
 
-    // ---- third-person follow camera (FIXED angle, behind & above) ----
-    // The camera does NOT rotate with the player — it always looks the same
-    // direction (north / -Z). This keeps walking straight & comfortable:
-    // pressing D always moves right on screen, no spinning/"bending".
-    const camDist = 22, camHeight = 16;
-    const desired = new THREE.Vector3(player.x, camHeight, player.z + camDist);
+    // ---- third-person follow camera (mouse can orbit + look up/down) ----
+    // camYaw spins the camera around the player; camPitch looks up/down.
+    // The camera only moves when the player drags the mouse, so walking stays
+    // comfortable (no auto-spin / "bending").
+    const camDist = 22;
+    const horiz = camDist * Math.cos(camPitch);
+    const offX = Math.sin(camYaw) * horiz;
+    const offZ = Math.cos(camYaw) * horiz;
+    const camHeight = 4 + camDist * Math.sin(camPitch);
+    const desired = new THREE.Vector3(player.x + offX, camHeight, player.z + offZ);
     camera.position.lerp(desired, Math.min(1, dt*6));
-    camera.lookAt(player.x, 3, player.z);
+    // look target shifts up/down with pitch so you actually see sky / ground
+    const lookY = 3 + (0.62 - camPitch) * 30;
+    camera.lookAt(player.x, lookY, player.z);
     camera.updateMatrixWorld();   // ensure basis is fresh for next frame's input
 
     // ---- coins: spin, bob, collect ----
