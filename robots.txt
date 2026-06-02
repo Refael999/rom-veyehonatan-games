@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://refael999.github.io/rom-veyehonatan-games/sitemap.xml
