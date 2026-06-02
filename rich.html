@@ -297,8 +297,9 @@ function topPlayers(){
 
 // ================= Game state =================
 let player, coins, running, last, incomeAcc, coinTimer, elapsed, nearShop, shopOpen, busy, saveAcc=0;
-// camera orbit angles (mouse-controlled): camYaw = spin around, camPitch = up/down
-let camYaw=0, camPitch=0.62;
+// camera angles: camHeading = follows the player's facing (Minecraft trail),
+// camYaw = small mouse peek offset, camPitch = up/down
+let camHeading=0, camYaw=0, camPitch=0.62;
 let startCash = 150;   // how much money the player starts with (millionaire button raises this)
 let keys={};
 
@@ -848,7 +849,7 @@ function initState(){
     player = { x:0, z:8, r:2.4, cash:startCash, invested:0, speed:30, yaw:0, bob:0, owned:[] };
     coins = [];
     incomeAcc=0; coinTimer=0; elapsed=0; nearShop=false; shopOpen=false; busy=false; saveAcc=0;
-    camYaw=0; camPitch=0.62;   // reset camera behind the player
+    camHeading=0; camYaw=0; camPitch=0.62;   // reset camera behind the player
 
     // clear any previously-built house
     if(homeHouseGroup){ while(homeHouseGroup.children.length) homeHouseGroup.remove(homeHouseGroup.children[0]); }
@@ -1074,16 +1075,11 @@ function loop(t){
         if(keys['d']||keys['KeyD']||keys['arrowright']||keys['ArrowRight']) inR+=1;
     }
 
-    // Derive movement basis straight from the camera world matrix.
-    camera.matrixWorld.extractBasis(_tmpRight, _tmpUp, _tmpBack);
-    // forward = -back projected to ground; right = +right projected to ground
-    let fX = -_tmpBack.x, fZ = -_tmpBack.z;
-    let rX =  _tmpRight.x, rZ = _tmpRight.z;
-    let fl = Math.hypot(fX,fZ) || 1; fX/=fl; fZ/=fl;
-    let rl = Math.hypot(rX,rZ) || 1; rX/=rl; rZ/=rl;
-
-    let moveX = fX*inF + rX*inR;
-    let moveZ = fZ*inF + rZ*inR;
+    // World-fixed movement (W=up the map, D=right). Keeping input independent of
+    // the camera angle is what lets the camera safely trail BEHIND the player
+    // (Minecraft-style) without the old "bending" feedback loop.
+    let moveX = inR;
+    let moveZ = -inF;
     const mlen = Math.hypot(moveX, moveZ);
     let moving=false;
     if(mlen>0.05){
@@ -1123,12 +1119,19 @@ function loop(t){
     // camYaw spins the camera around the player; camPitch looks up/down.
     // The camera only moves when the player drags the mouse, so walking stays
     // comfortable (no auto-spin / "bending").
-    const camDist = 14;                     // closer to the player
+    // Minecraft-style: camera trails BEHIND the player's heading.
+    // camHeading smoothly turns to follow the way the player faces.
+    let dh = player.yaw - camHeading;
+    while(dh >  Math.PI) dh -= Math.PI*2;
+    while(dh < -Math.PI) dh += Math.PI*2;
+    camHeading += dh * Math.min(1, dt*10);
+    const orbit = camHeading + camYaw;      // camYaw = small mouse peek
+    const camDist = 14;                     // close to the player
     const horiz = camDist * Math.cos(camPitch);
-    const offX = Math.sin(camYaw) * horiz;
-    const offZ = Math.cos(camYaw) * horiz;
+    // place camera directly behind the facing direction (player - forward*dist)
+    const offX = -Math.sin(orbit) * horiz;
+    const offZ = -Math.cos(orbit) * horiz;
     const camHeight = 3 + camDist * Math.sin(camPitch);
-    // snap straight onto the player (no lerp) so the camera never "slides"
     camera.position.set(player.x + offX, camHeight, player.z + offZ);
     // look target shifts up/down with pitch so you actually see sky / ground
     const lookY = 3 + (0.62 - camPitch) * 22;
