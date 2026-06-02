@@ -228,7 +228,6 @@ canvas { display:block; width:100%; height:100%; background:#87cefa; }
         </div>
         <input id="nameInput" placeholder="השם שלך..." maxlength="10">
         <button class="btn" id="startBtn">🎮 התחל!</button>
-        <button class="btn alt" id="richBtn">💰 מיליון ₪ (רק ליוצר רום 👑)</button>
         <p class="hint">מחשב: זוז עם WASD / חצים · היכנס לחנות עם רווח · פלאפון: ג'ויסטיק + כפתור 🛒</p>
     </div>
 
@@ -294,7 +293,7 @@ function topPlayers(){
 }
 
 // ================= Game state =================
-let player, coins, running, last, incomeAcc, coinTimer, elapsed, nearShop, shopOpen, busy;
+let player, coins, running, last, incomeAcc, coinTimer, elapsed, nearShop, shopOpen, busy, saveAcc=0;
 let startCash = 150;   // how much money the player starts with (millionaire button raises this)
 let keys={};
 
@@ -323,6 +322,19 @@ const HOUSE_DEFS = [
 function netWorth(){ return player.cash + player.invested; }
 // income = SUM of incomes of every house the player has built (richer = own more)
 function incomePerSec(){ return player.owned.reduce((s,id)=>{ const h=HOUSE_DEFS.find(d=>d.id===id); return s+(h?h.inc:0); },0); }
+
+// ================= Auto-save (saves everything; resumes automatically) =================
+const SAVE_KEY = 'romyon_rich_save_v1';
+function saveGame(){
+    if(!player) return;
+    try{
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+            name: curName, cash: player.cash, invested: player.invested,
+            owned: player.owned.slice(), elapsed: elapsed
+        }));
+    }catch(e){}
+}
+function loadSave(){ try{ return JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(e){ return null; } }
 
 // ================= Format money =================
 function fmt(n){
@@ -826,7 +838,7 @@ function removeCoin(i){
 function initState(){
     player = { x:0, z:8, r:2.4, cash:startCash, invested:0, speed:30, yaw:0, bob:0, owned:[] };
     coins = [];
-    incomeAcc=0; coinTimer=0; elapsed=0; nearShop=false; shopOpen=false; busy=false;
+    incomeAcc=0; coinTimer=0; elapsed=0; nearShop=false; shopOpen=false; busy=false; saveAcc=0;
 
     // clear any previously-built house
     if(homeHouseGroup){ while(homeHouseGroup.children.length) homeHouseGroup.remove(homeHouseGroup.children[0]); }
@@ -911,6 +923,7 @@ function buyHouse(h){
     player.cash -= h.price;
     player.invested += h.price;
     player.owned.push(h.id);
+    saveGame();
     sndBuy();
     closeShop();
     updateHud();
@@ -1018,6 +1031,10 @@ function loop(t){
     if(!last) last=t;
     const dt = Math.min(0.05,(t-last)/1000); last=t;
     elapsed += dt;
+
+    // auto-save everything about every 2 seconds
+    saveAcc += dt;
+    if(saveAcc >= 2){ saveAcc = 0; saveGame(); }
 
     // ---- input forward/right (camera-relative) ----
     // inputForward: +1 = away from camera (W / joystick up)
@@ -1191,6 +1208,22 @@ function start(){
     if(IS_TOUCH){ pad.style.display='block'; document.getElementById('shopBtn').style.display='block'; }
     clearWorldObjects();
     initState();
+    // auto-resume: if there is a saved game, continue from exactly where we stopped
+    const sv = loadSave();
+    if(sv){
+        player.cash = (typeof sv.cash==='number') ? sv.cash : player.cash;
+        player.invested = sv.invested || 0;
+        player.owned = Array.isArray(sv.owned) ? sv.owned.slice() : [];
+        elapsed = sv.elapsed || 0;
+        if(sv.name){ curName = sv.name; }
+        // rebuild the last house the player built, on their plot
+        if(player.owned.length && homeHouseGroup){
+            while(homeHouseGroup.children.length) homeHouseGroup.remove(homeHouseGroup.children[0]);
+            homeHouseGroup.add(buildHouseMesh(player.owned[player.owned.length-1]));
+            player.x = HOME.x; player.z = HOME.z+8;
+            playerGroup.position.set(player.x, 0, player.z);
+        }
+    }
     resizeRenderer();
     running=true; last=0;
     startMusic();
@@ -1198,12 +1231,6 @@ function start(){
     requestAnimationFrame(loop);
 }
 document.getElementById('startBtn').onclick = ()=>{ startCash = 150; start(); };
-document.getElementById('richBtn').onclick = ()=>{
-    const nm = (document.getElementById('nameInput').value || '').trim();
-    // Only the creator (רום) gets the million.
-    if(nm === 'רום'){ startCash = 1000000; start(); }
-    else { alert('💰 רק רום — היוצר 👑 — יכול להתחיל עם מיליון!\nכתוב "רום" בשם כדי לקבל אותו.'); }
-};
 document.getElementById('contBtn').onclick = ()=>{
     // keep playing: just hide the win overlay, game loop is still running
     document.getElementById('winOv').style.display='none';
@@ -1213,6 +1240,13 @@ document.getElementById('againBtn').onclick = ()=>{
     document.getElementById('winOv').style.display='none';
     document.getElementById('startOv').style.display='flex';
 };
+
+// save everything the moment the page is closed / hidden (phone home button, tab switch, etc.)
+window.addEventListener('beforeunload', saveGame);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) saveGame(); });
+
+// prefill the saved player name so returning is one tap
+(function(){ const sv=loadSave(); if(sv && sv.name){ const ni=document.getElementById('nameInput'); if(ni) ni.value = sv.name; } })();
 
 // boot the 3D scene immediately so the canvas is ready behind the start overlay
 initThree();
