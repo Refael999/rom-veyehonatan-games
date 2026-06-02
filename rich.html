@@ -1123,15 +1123,15 @@ function loop(t){
     // camYaw spins the camera around the player; camPitch looks up/down.
     // The camera only moves when the player drags the mouse, so walking stays
     // comfortable (no auto-spin / "bending").
-    const camDist = 22;
+    const camDist = 14;                     // closer to the player
     const horiz = camDist * Math.cos(camPitch);
     const offX = Math.sin(camYaw) * horiz;
     const offZ = Math.cos(camYaw) * horiz;
-    const camHeight = 4 + camDist * Math.sin(camPitch);
-    const desired = new THREE.Vector3(player.x + offX, camHeight, player.z + offZ);
-    camera.position.lerp(desired, Math.min(1, dt*6));
+    const camHeight = 3 + camDist * Math.sin(camPitch);
+    // snap straight onto the player (no lerp) so the camera never "slides"
+    camera.position.set(player.x + offX, camHeight, player.z + offZ);
     // look target shifts up/down with pitch so you actually see sky / ground
-    const lookY = 3 + (0.62 - camPitch) * 30;
+    const lookY = 3 + (0.62 - camPitch) * 22;
     camera.lookAt(player.x, lookY, player.z);
     camera.updateMatrixWorld();   // ensure basis is fresh for next frame's input
 
